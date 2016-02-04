@@ -63,6 +63,8 @@
         // e.g. send 0x11111111 in Light blue
 
 
+        // accepts an Array of UINT16 pairs =.  (eventId, eventValue)     5 Pairs (i.e. 20 bytes) max
+        // returns an Array of UINT8 bytes in little-endian format
         // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
         // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
         function create_microbit_event_message(events) {
