@@ -122,6 +122,10 @@ function draw() {
             c.strokeStyle = "cyan";
             c.arc(leftPointerPos.x, leftPointerPos.y, 40, 0, Math.PI * 2, true);
             c.stroke();
+            console.log("x,y= " + leftPointerPos.x +","+ leftPointerPos.y);
+            send_joypad_message({x:leftPointerPos.x, y:leftPointerPos.y});
+
+
 
         } else {
 

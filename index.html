@@ -31,15 +31,94 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0;" />
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0" />
     <title>Video game controller with a simple spaceship game - using HandJS</title>
-    <link rel="stylesheet" href="virtualjoystick.css" />
-    <script src="hand.minified.js"></script>
-    <script src="Collection.js"></script>
-    <script src="Vector2.js"></script>
-    <script src="ShipMovingTouch.js"></script>
-    <script src="BulletSebs.js"></script>
-    <script src="TouchControl.js"></script>
+    <link rel="stylesheet" href="css/virtualjoystick.css" />
+    <script src="lib/bleuart.js"></script>
+    <script>
+        var bleuart = new BLEUART();
+        bleuart.connect('ws://localhost:3141/ble/nrfuart');
+        //bleuart.connect('ws://JohnnyFive.local:3141/ble/nrfuart');
+        // Inbound events
+        //#define MOTOR1_EVENT_ID         0xE101
+        //#define MOTOR2_EVENT_ID         0xE102
+
+        var JOYPAD_XAXIS_EVENT_ID  = 0xE201;
+        var JOYPAD_YAXIS_EVENT_ID  = 0xE202;
+        //#define JOYPAD_ZAXIS_EVENT_ID   0xE203
+
+        // Outbound events
+        //#define GYRO_X_EVENT_ID         0xF101
+        //#define GYRO_Y_EVENT_ID         0xF102
+        //#define GYRO_Z_EVENT_ID         0xF103
+
+        // motor speeds are in range: -255 (fullspeed dir A) to 255  (fullspeed dir B)
+        // -256 is break.
+        // there is a configurable dead zone
+        // speed may not be PWM enabled so motors might only be at full speed (fwd/back) or stopped.
+        // motor events accepts paramter:  <desired speed + 256>,   use -255 for coast and -256 for break
+        // e.g. data:    0xF101, 0x0100    =>  BLE message:   0x01F1, 0x0001
+
+        // BLE events are <uint16_t source, uint16_t value> up to 10 events in a single BLE payload (20 bytes)
+        // e.g. send 0x11111111 in Light blue
+
+
+        // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
+        // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
+        function create_microbit_event_message(events) {
+            var arrayLength = events.length;
+
+            var buffer = new ArrayBuffer(2 * arrayLength);
+            var dataView = new DataView(buffer);
+            var uint8View = new Uint8Array(buffer);
+
+            for (var i = 0; i < arrayLength; i+=2) {
+                eventId = events[i];
+                eventValue = events[i+1];
+                dataView.setUint16((i*2), eventId, littleEndian = true);
+                dataView.setUint16((i*2)+2, eventValue, littleEndian = true) ;
+            }
+
+            return Array.from(uint8View);
+
+        }
+
+        function create_joypad_message(joypadValue) {
+
+            var buffer = new ArrayBuffer(2 * 4);
+            var dataView = new DataView(buffer);
+            var uint8View = new Uint8Array(buffer);
+
+            dataView.setUint16(0, JOYPAD_XAXIS_EVENT_ID, littleEndian = true);
+            dataView.setUint16(2, joypadValue.x, littleEndian = true) ;
+            dataView.setUint16(4, JOYPAD_YAXIS_EVENT_ID, littleEndian = true);
+            dataView.setUint16(6, joypadValue.y, littleEndian = true) ;
+
+            return Array.from(uint8View);
+        }
+
+
+
+        function send_joypad_message(joypadValue) {
+            //message = create_joypad_message(joypadValue);
+            message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x, JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
+            //console.log("Joy msg1 = " + message1);
+
+            bleuart.writeArray(message);
+        }
+
+        send_joypad_message({x:1, y:2});
+
+    </script>
+
+    <script src="js/hand.minified.js"></script>
+    <script src="js/Collection.js"></script>
+    <script src="js/Vector2.js"></script>
+    <script src="js/ShipMovingTouch.js"></script>
+    <script src="js/BulletSebs.js"></script>
+    <script src="js/TouchControl.js"></script>
+
+
 </head>
 <body>
     <div class="container">
