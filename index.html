@@ -77,7 +77,7 @@
             for (var i = 0; i < arrayLength; i+=2) {
                 eventId = events[i];
                 eventValue = events[i+1];
-                dataView.setUint16((i*2), eventId, littleEndian = true);
+                dataView.setUint16((i*2),   eventId, littleEndian = true);
                 dataView.setUint16((i*2)+2, eventValue, littleEndian = true) ;
             }
 
@@ -103,9 +103,12 @@
 
         function send_joypad_message(joypadValue) {
             //message = create_joypad_message(joypadValue);
-            message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x, JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
-            //console.log("Joy msg1 = " + message1);
+            //message = create_microbit_event_message([0x1111, 0x0000]);
+            //message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x, JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
 
+            message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x]);
+            bleuart.writeArray(message);
+            message = create_microbit_event_message([JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
             bleuart.writeArray(message);
         }
 
