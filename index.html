@@ -40,8 +40,8 @@
         bleuart.connect('ws://localhost:3141/ble/nrfuart');
         //bleuart.connect('ws://JohnnyFive.local:3141/ble/nrfuart');
         // Inbound events
-        //#define MOTOR1_EVENT_ID         0xE101
-        //#define MOTOR2_EVENT_ID         0xE102
+        var MOTOR1_EVENT_ID   =     0xE101;
+        var MOTOR2_EVENT_ID   =     0xE102;
 
         var JOYPAD_XAXIS_EVENT_ID  = 0xE201;
         var JOYPAD_YAXIS_EVENT_ID  = 0xE202;
@@ -85,6 +85,7 @@
 
         }
 
+        /*
         function create_joypad_message(joypadValue) {
 
             var buffer = new ArrayBuffer(2 * 4);
@@ -98,6 +99,7 @@
 
             return Array.from(uint8View);
         }
+         */
 
 
 
@@ -106,13 +108,15 @@
             //message = create_microbit_event_message([0x1111, 0x0000]);
             //message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x, JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
 
-            message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x]);
+            //message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x]);
+            message = create_microbit_event_message([MOTOR1_EVENT_ID, joypadValue.x]);
             bleuart.writeArray(message);
-            message = create_microbit_event_message([JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
+            //message = create_microbit_event_message([JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
+            message = create_microbit_event_message([MOTOR2_EVENT_ID, joypadValue.y]);
             bleuart.writeArray(message);
         }
 
-        send_joypad_message({x:1, y:2});
+        //send_joypad_message({x:1, y:2});
 
     </script>
 
