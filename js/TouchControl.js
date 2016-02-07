@@ -46,9 +46,6 @@ leftPointerStartPos = new Vector2(0, 0),
 leftVector = new Vector2(0, 0);
 
 var touches; // collections of pointers
-var ship;
-bullets = [],
-spareBullets = [];
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -58,8 +55,6 @@ window.onresize = resetCanvas;
 function init() {
     setupCanvas();
     touches = new Collection();
-    ship = new ShipMoving(halfWidth, halfHeight);
-    document.body.appendChild(ship.canvas);
     canvas.addEventListener('pointerdown', onPointerDown, false);
     canvas.addEventListener('pointermove', onPointerMove, false);
     canvas.addEventListener('pointerup', onPointerUp, false);
@@ -82,29 +77,6 @@ function resetCanvas(e) {
 function draw() {
     c.clearRect(0, 0, canvas.width, canvas.height);
 
-    ship.targetVel.copyFrom(leftVector);
-    ship.targetVel.multiplyEq(0.15);
-    ship.update();
-
-    with (ship.pos) {
-        if (x < 0) x = canvas.width;
-        else if (x > canvas.width) x = 0;
-        if (y < 0) y = canvas.height;
-        else if (y > canvas.height) y = 0;
-    }
-
-    ship.draw();
-
-    for (var i = 0; i < bullets.length; i++) {
-        var bullet = bullets[i];
-        if (!bullet.enabled) continue;
-        bullet.update();
-        bullet.draw(c);
-        if (!bullet.enabled) {
-            spareBullets.push(bullet);
-
-        }
-    }
 
     touches.forEach(function (touch) {
         if (touch.identifier == leftPointerID) {
@@ -122,8 +94,8 @@ function draw() {
             c.strokeStyle = "cyan";
             c.arc(leftPointerPos.x, leftPointerPos.y, 40, 0, Math.PI * 2, true);
             c.stroke();
-            console.log("x,y= " + leftPointerPos.x +","+ leftPointerPos.y);
-            send_joypad_message({x:leftPointerPos.x, y:leftPointerPos.y });
+            //console.log("x,y= " + leftPointerPos.x +","+ leftPointerPos.y);
+            //send_joypad_message({x:leftPointerPos.x, y:leftPointerPos.y });
 
 
 
@@ -145,21 +117,7 @@ function draw() {
 }
 
 function makeBullet() {
-    var bullet;
-
-    if (spareBullets.length > 0) {
-
-        bullet = spareBullets.pop();
-        bullet.reset(ship.pos.x, ship.pos.y, ship.angle);
-
-    } else {
-
-        bullet = new Bullet(ship.pos.x, ship.pos.y, ship.angle);
-        bullets.push(bullet);
-
-    }
-
-    bullet.vel.plusEq(ship.vel);
+    console.log("FIRE PRESSED");
 }
 
 function givePointerType(event) {
@@ -183,6 +141,7 @@ function onPointerDown(e) {
         leftPointerStartPos.reset(e.clientX, e.clientY);
         leftPointerPos.copyFrom(leftPointerStartPos);
         leftVector.reset(0, 0);
+        joypad_motion_begin(leftPointerPos);
     }
     else {
         makeBullet();
@@ -196,6 +155,8 @@ function onPointerMove(e) {
         leftPointerPos.reset(e.clientX, e.clientY);
         leftVector.copyFrom(leftPointerPos);
         leftVector.minusEq(leftPointerStartPos);
+        joypad_motion_moved(leftVector);
+
     }
     else {
         if (touches.item(e.pointerId)) {
@@ -209,6 +170,7 @@ function onPointerUp(e) {
     if (leftPointerID == e.pointerId) {
         leftPointerID = -1;
         leftVector.reset(0, 0);
+        joypad_motion_end(leftVector);
 
     }
     leftVector.reset(0, 0);

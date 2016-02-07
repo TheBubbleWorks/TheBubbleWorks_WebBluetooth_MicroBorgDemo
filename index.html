@@ -32,7 +32,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0" />
-    <title>Video game controller with a simple spaceship game - using HandJS</title>
+    <title>Joypad</title>
     <link rel="stylesheet" href="css/virtualjoystick.css" />
     <script src="lib/bleuart.js"></script>
     <script>
@@ -80,51 +80,58 @@
                 dataView.setUint16((i*2),   eventId, littleEndian = true);
                 dataView.setUint16((i*2)+2, eventValue, littleEndian = true) ;
             }
-
-            return Array.from(uint8View);
-
-        }
-
-        /*
-        function create_joypad_message(joypadValue) {
-
-            var buffer = new ArrayBuffer(2 * 4);
-            var dataView = new DataView(buffer);
-            var uint8View = new Uint8Array(buffer);
-
-            dataView.setUint16(0, JOYPAD_XAXIS_EVENT_ID, littleEndian = true);
-            dataView.setUint16(2, joypadValue.x, littleEndian = true) ;
-            dataView.setUint16(4, JOYPAD_YAXIS_EVENT_ID, littleEndian = true);
-            dataView.setUint16(6, joypadValue.y, littleEndian = true) ;
-
             return Array.from(uint8View);
         }
-         */
 
+        function send_motor_message(m1, m2) {
 
+            if (m1<-256) m1 =-255;
+            if (m2<-256) m2 =-255;
+            if (m1> 255) m1 = 255;
+            if (m2> 255) m2 = 255;
+            dbgMsg = "m1,m2 = " + m1 + ", " + m2 +" => "
 
-        function send_joypad_message(joypadValue) {
-            //message = create_joypad_message(joypadValue);
-            //message = create_microbit_event_message([0x1111, 0x0000]);
-            //message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x, JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
+            newM1 = m1 + 255;
+            newM2 = m2 + 255;
+            console.log(dbgMsg + newM1 + ", " + newM2);
 
-            //message = create_microbit_event_message([JOYPAD_XAXIS_EVENT_ID, joypadValue.x]);
-            message = create_microbit_event_message([MOTOR1_EVENT_ID, joypadValue.x]);
-            bleuart.writeArray(message);
-            //message = create_microbit_event_message([JOYPAD_YAXIS_EVENT_ID, joypadValue.y]);
-            message = create_microbit_event_message([MOTOR2_EVENT_ID, joypadValue.y]);
-            bleuart.writeArray(message);
+            message1 = create_microbit_event_message([MOTOR1_EVENT_ID, newM1]);
+            message2 = create_microbit_event_message([MOTOR2_EVENT_ID, newM2]);
+            bleuart.writeArray(message1);
+            bleuart.writeArray(message2);
         }
 
-        //send_joypad_message({x:1, y:2});
+        m1Speed = 0;
+        m2Speed = 0;
+        function joypad_motion_begin(position) // Vector2
+        {
+            //console.log("Joypad begin: " + position);
+        }
+        function joypad_motion_moved(position) // Vector2
+        {
+            //console.log("Joypad move: " + position);
+            m1Speed = -position.y  + position.x ;
+            m2Speed = -position.y  - position.x ;
 
+
+        }
+        function joypad_motion_end(position) // Vector2
+        {
+            //console.log("Joypad end: " + position);
+            //send_motor_message(0,0);
+            m1Speed = 0;
+            m2Speed = 0;
+        }
+
+
+        setInterval(function() {
+            send_motor_message(m1Speed, m2Speed);
+        }, 250);
     </script>
 
     <script src="js/hand.minified.js"></script>
     <script src="js/Collection.js"></script>
     <script src="js/Vector2.js"></script>
-    <script src="js/ShipMovingTouch.js"></script>
-    <script src="js/BulletSebs.js"></script>
     <script src="js/TouchControl.js"></script>
 
 
