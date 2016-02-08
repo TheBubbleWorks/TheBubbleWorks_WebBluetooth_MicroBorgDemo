@@ -1,27 +1,26 @@
-// see: http://stackoverflow.com/questions/18821087/errors-when-running-ssl-with-grunt-server
-// see: http://www.akadia.com/services/ssh_test_certificate.html
+// see: https://github.com/gruntjs/grunt-contrib-connect
 module.exports = function(grunt) {
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
-		connect: {
-			options: {
-				hostname: 'localhost',
-				key: grunt.file.read('server.key').toString(),
-				cert: grunt.file.read('server.crt').toString(),
-				ca: grunt.file.read('server.crt').toString(),
-				passphrase: 'grunt',
-			},
-			example: {
-                protocol: 'https',
-				port: 3141,
-				base: '.'
-			}
-		}
+        connect: {
+            server: {
+                options: {
+                    hostname: '*',
+                    port: 3141,
+                    protocol: 'https',
+                    //key: grunt.file.read('server.key').toString(),
+                    //cert: grunt.file.read('server.crt').toString(),
+                    //ca: grunt.file.read('ca.crt').toString(),
+                    keepalive: true,
+                    base: '.'
+                },
+            },
+        },
 	});
 
 
-	grunt.loadNpmTasks('grunt-connect');
-	grunt.registerTask('default', 'connect:example');
+	grunt.loadNpmTasks('grunt-contrib-connect');
+	grunt.registerTask('default', 'connect:server');
 
 };

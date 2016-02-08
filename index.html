@@ -70,6 +70,8 @@
 
         if (navigator.bluetooth == undefined) {
             alert("no bluetooth");
+            USE_WEB_BLUETOOTH = false;
+
         } else {
             USE_WEB_BLUETOOTH = true;
         }
@@ -122,11 +124,12 @@
          * @param speed The requested vehicle speed in mm/sec.
          * @param accel The acceleration in mm/sec^2.
          */
-        function setSpeed(m1, m2) {
+        function setSpeed(m) {
             console.log('Set speed: m1=' + m1 +', m2=' + m2);
-            let cmd = new Uint8Array([]);
+            //let cmd = new Uint8Array([]);
+
             sendCommand(cmd).then(() => {
-                console.log('Speed set.');
+                //console.log('Speed set.');
         })
         .catch(handleError);
         }
@@ -136,13 +139,13 @@
          */
         function disconnect() {
             console.log('Disconnect');
-            /*let cmd = new Uint8Array([0x1, 0xd]);
-             sendCommand(cmd).then(() => {
+             //let cmd = new Uint8Array([0x1, 0xd]);
+             //sendCommand(cmd).then(() => {
              resetVariables();
-             console.log('Disconnected.');
-             })
-             .catch(handleError);
-             */
+             //console.log('Disconnected.');
+             //})
+             //.catch(handleError);
+
         }
 
         document.getElementById("connectButton").addEventListener('click', () => {
@@ -166,7 +169,7 @@
                     console.log('> Found GATT server');
                 gattServer = server;
                 // Get car service
-                return gattServer.getPrimaryService();
+                return gattServer.getPrimaryService(MICROBIT_EVENT_SERVICE_UUID);
             })
             .then(service => {
                     console.log('> Found car service');
@@ -244,7 +247,7 @@
         // returns an Array of UINT8 bytes in little-endian format
         // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
         // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
-        function create_microbit_event_message(events) {
+        function create_microbit_event_message_WebBLE(events) {
             var arrayLength = events.length;
 
             var buffer = new ArrayBuffer(2 * arrayLength);
@@ -254,10 +257,14 @@
             for (var i = 0; i < arrayLength; i+=2) {
                 var eventId = events[i];
                 var eventValue = events[i+1];
-                dataView.setUint16((i*2),   eventId, littleEndian = true);
-                dataView.setUint16((i*2)+2, eventValue, littleEndian = true) ;
+                dataView.setUint16((i*2),   eventId,  true);
+                dataView.setUint16((i*2)+2, eventValue,  true) ;
             }
-            return Array.from(uint8View);
+            return uint8View;
+        }
+
+        function create_microbit_event_message(events) {
+            return Array.from(create_microbit_event_message_WebBLE(events));
         }
 
         function send_motor_message(m1, m2) {
@@ -274,8 +281,10 @@
 
             var message1 = create_microbit_event_message([MOTOR1_EVENT_ID, newM1]);
             var message2 = create_microbit_event_message([MOTOR2_EVENT_ID, newM2]);
-            if (USE_WEB_BLUETOOTH) {
 
+            if (USE_WEB_BLUETOOTH) {
+                sendCommand(create_microbit_event_message_WebBLE(message1));
+                sendCommand(create_microbit_event_message_WebBLE(message2));
             } else {
                 bleuart.writeArray(message1);
                 bleuart.writeArray(message2);
@@ -306,11 +315,7 @@
 
 
         setInterval(function() {
-            if (USE_WEB_BLUETOOTH) {
-
-            } else {
-                send_motor_message(m1Speed, m2Speed);
-            }
+            send_motor_message(m1Speed, m2Speed);
         }, 250);
     </script>
 
