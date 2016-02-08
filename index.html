@@ -35,10 +35,187 @@
     <title>Joypad</title>
     <link rel="stylesheet" href="css/virtualjoystick.css" />
     <script src="lib/bleuart.js"></script>
+
+    <script src="js/hand.minified.js"></script>
+    <script src="js/Collection.js"></script>
+    <script src="js/Vector2.js"></script>
+    <script src="js/TouchControl.js"></script>
+
+
+</head>
+<body>
+    <div><button id="connectButton">Connect</button></div>
+    <div class="container">
+
+        <canvas id="canvasSurfaceGame"></canvas>
+    </div>
+
+
     <script>
-        var bleuart = new BLEUART();
-        bleuart.connect('ws://localhost:3141/ble/nrfuart');
-        //bleuart.connect('ws://JohnnyFive.local:3141/ble/nrfuart');
+        'use strict';
+
+        var MICROBIT_EVENT_SERVICE_UUID = 'e95d93af-251d-470a-a062-fa1922dfa9a8';
+        var MICROBIT_EVENT_CHAR_TX_UUID = 'e95d9775-251d-470a-a062-fa1922dfa9a8';
+        var MICROBIT_EVENT_CHAR_RX_UUID = 'e95d5404-251d-470a-a062-fa1922dfa9a8';
+
+
+
+        var busy = false;
+        var gattServer;
+        var driveService;
+        var writeCharacteristic;
+        var readCharacteristic;
+
+        var USE_WEB_BLUETOOTH = false;
+
+        if (navigator.bluetooth == undefined) {
+            alert("no bluetooth");
+        } else {
+            USE_WEB_BLUETOOTH = true;
+        }
+
+
+        /**
+         * Reset the app variable states.
+         */
+        function resetVariables() {
+            busy = false;
+            gattServer = null;
+            driveService = null;
+            writeCharacteristic = null;
+            readCharacteristic = null;
+        }
+
+        function handleError(error) {
+            console.log(error);
+            resetVariables();
+        }
+
+
+        /**
+         * Send a command to the car device.
+         *
+         * @param bytes The data containing the values.
+         * @param offset The data offset within bytes.
+         * @return short The data value.
+         */
+        function sendCommand(cmd) {
+            if (writeCharacteristic) {
+                // Handle one command at a time
+                if (busy) {
+                    // Return if another operation pending
+                    return Promise.resolve();
+                }
+                busy = true;
+                return writeCharacteristic.writeValue(cmd).then(() => {
+                    busy = false;
+            });
+            } else {
+                return Promise.resolve();
+            }
+        }
+
+
+        /**
+         * Set the car speed.
+         *
+         * @param speed The requested vehicle speed in mm/sec.
+         * @param accel The acceleration in mm/sec^2.
+         */
+        function setSpeed(m1, m2) {
+            console.log('Set speed: m1=' + m1 +', m2=' + m2);
+            let cmd = new Uint8Array([]);
+            sendCommand(cmd).then(() => {
+                console.log('Speed set.');
+        })
+        .catch(handleError);
+        }
+
+        /**
+         * Disconnect the device.
+         */
+        function disconnect() {
+            console.log('Disconnect');
+            /*let cmd = new Uint8Array([0x1, 0xd]);
+             sendCommand(cmd).then(() => {
+             resetVariables();
+             console.log('Disconnected.');
+             })
+             .catch(handleError);
+             */
+        }
+
+        document.getElementById("connectButton").addEventListener('click', () => {
+            if (gattServer != null && gattServer.connected) {
+            disconnect();
+        } else {
+            console.log('Connecting...');
+            //progress.hidden = false;
+            if (readCharacteristic == null) {
+                navigator.bluetooth.requestDevice({
+                            filters: [{
+                                services: [MICROBIT_EVENT_SERVICE_UUID]
+                            }]
+                        })
+                        .then(device => {
+                    console.log('> DEviceNAme=' + device.name);
+                console.log('Connecting to GATT Server...');
+                return device.connectGATT();
+            })
+            .then(server => {
+                    console.log('> Found GATT server');
+                gattServer = server;
+                // Get car service
+                return gattServer.getPrimaryService();
+            })
+            .then(service => {
+                    console.log('> Found car service');
+                driveService = service;
+                // Get write characteristic
+                return driveService.getCharacteristic(MICROBIT_EVENT_CHAR_TX_UUID);
+            })
+            .then(characteristic => {
+                    console.log('> Found write characteristic');
+                writeCharacteristic = characteristic;
+                // Get read characteristic
+                return driveService.getCharacteristic(MICROBIT_EVENT_CHAR_RX_UUID);
+            })
+            .then(characteristic => {
+                    console.log('> Found read characteristic');
+                readCharacteristic = characteristic;
+                progress.hidden = true;
+                // Listen to device notifications
+                return readCharacteristic.startNotifications().then(() => {
+                            readCharacteristic.addEventListener('characteristicvaluechanged', event => {
+                            console.log('> characteristicvaluechanged = ' + event.target.value + ' [' + event.target.value.byteLength +']');
+                if (event.target.value.byteLength >= 2) {
+                    let value = new Uint8Array(event.target.value);
+
+                }
+            });
+                setSdkMode();
+            });
+            })
+            .catch(handleError);
+            } else {
+
+                //progress.hidden = true;
+            }
+        }
+        });
+
+
+        ////////////////////////////////////////////////////////////////////////////////////
+
+        var bleuart;
+        if (USE_WEB_BLUETOOTH) {
+        } else {
+            bleuart = new BLEUART();
+            bleuart.connect('ws://localhost:3141/ble/nrfuart');
+            //bleuart.connect('ws://JohnnyFive.local:3141/ble/nrfuart');
+
+        }
+
         // Inbound events
         var MOTOR1_EVENT_ID   =     0xE101;
         var MOTOR2_EVENT_ID   =     0xE102;
@@ -75,8 +252,8 @@
             var uint8View = new Uint8Array(buffer);
 
             for (var i = 0; i < arrayLength; i+=2) {
-                eventId = events[i];
-                eventValue = events[i+1];
+                var eventId = events[i];
+                var eventValue = events[i+1];
                 dataView.setUint16((i*2),   eventId, littleEndian = true);
                 dataView.setUint16((i*2)+2, eventValue, littleEndian = true) ;
             }
@@ -89,20 +266,24 @@
             if (m2<-256) m2 =-255;
             if (m1> 255) m1 = 255;
             if (m2> 255) m2 = 255;
-            dbgMsg = "m1,m2 = " + m1 + ", " + m2 +" => "
+            var dbgMsg = "m1,m2 = " + m1 + ", " + m2 +" => "
 
-            newM1 = m1 + 255;
-            newM2 = m2 + 255;
+            var newM1 = m1 + 255;
+            var newM2 = m2 + 255;
             console.log(dbgMsg + newM1 + ", " + newM2);
 
-            message1 = create_microbit_event_message([MOTOR1_EVENT_ID, newM1]);
-            message2 = create_microbit_event_message([MOTOR2_EVENT_ID, newM2]);
-            bleuart.writeArray(message1);
-            bleuart.writeArray(message2);
+            var message1 = create_microbit_event_message([MOTOR1_EVENT_ID, newM1]);
+            var message2 = create_microbit_event_message([MOTOR2_EVENT_ID, newM2]);
+            if (USE_WEB_BLUETOOTH) {
+
+            } else {
+                bleuart.writeArray(message1);
+                bleuart.writeArray(message2);
+            }
         }
 
-        m1Speed = 0;
-        m2Speed = 0;
+        var m1Speed = 0;
+        var m2Speed = 0;
         function joypad_motion_begin(position) // Vector2
         {
             //console.log("Joypad begin: " + position);
@@ -125,20 +306,13 @@
 
 
         setInterval(function() {
-            send_motor_message(m1Speed, m2Speed);
+            if (USE_WEB_BLUETOOTH) {
+
+            } else {
+                send_motor_message(m1Speed, m2Speed);
+            }
         }, 250);
     </script>
 
-    <script src="js/hand.minified.js"></script>
-    <script src="js/Collection.js"></script>
-    <script src="js/Vector2.js"></script>
-    <script src="js/TouchControl.js"></script>
-
-
-</head>
-<body>
-    <div class="container">
-        <canvas id="canvasSurfaceGame"></canvas>
-    </div>
 </body>
 </html>
